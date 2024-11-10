@@ -1,0 +1,60 @@
+# templates/documents/detail.html
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0">{{ document.title }}</h2>
+                    <div>
+                        <a href="{% url 'document_collections:detail' document.collection.pk %}" class="btn btn-secondary">Back to Collection</a>
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Collection:</strong> {{ document.collection.name }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Uploaded:</strong> {{ document.created_at|date:"M d, Y H:i" }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>File Type:</strong> {{ document.file_type }}
+                    </div>
+                    <hr>
+                    <h4>Content:</h4>
+                    <div class="bg-light p-3 rounded">
+                        <pre style="white-space: pre-wrap;">{{ document.content }}</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete "{{ document.title }}"? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" action="{% url 'documents:delete' document.pk %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

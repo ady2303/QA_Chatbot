@@ -1,0 +1,36 @@
+# templates/document_collections/delete.html
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h2 class="mb-0">Delete Collection</h2>
+            </div>
+            <div class="card-body">
+                <p class="alert alert-warning">
+                    Are you sure you want to delete "{{ collection.name }}"? This action cannot be undone.
+                    All associated documents and chat sessions will also be deleted.
+                </p>
+                
+                <div class="mb-3">
+                    <h5>This will delete:</h5>
+                    <ul>
+                        <li>{{ collection.documents.count }} document(s)</li>
+                        <li>{{ collection.chat_sessions.count }} chat session(s)</li>
+                    </ul>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'document_collections:detail' collection.pk %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-danger">Delete Collection</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
