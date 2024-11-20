@@ -13,7 +13,7 @@ from termcolor import colored
 import sys
 
 class SimpleRAG:
-    def __init__(self, vectorstore_path: str = "vectorstore/chroma/7", use_openai: bool = False):
+    def __init__(self, vectorstore_path: str = "vectorstore/chroma/22", use_openai: bool = False):
         """Initialize the RAG system with existing vectorstore."""
         self.vectorstore_path = vectorstore_path
         

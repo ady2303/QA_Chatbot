@@ -9,4 +9,5 @@ urlpatterns = [
     path('<int:pk>/', views.collection_detail, name='detail'),
     # path('<int:pk>/update/', views.collection_update, name='update'),
     path('<int:pk>/delete/', views.collection_delete, name='delete'),
+    path('signup/', views.signup, name='signup'), 
 ]

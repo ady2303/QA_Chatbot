@@ -4,6 +4,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Count
 from .models import Collection
+from django.contrib.auth import login, authenticate 
+from .forms import SignUpForm
 from django.urls import reverse
 from django.http import HttpResponseForbidden
 
@@ -36,6 +38,19 @@ def collection_detail(request, pk):
     if collection.created_by != request.user:
         return HttpResponseForbidden("You don't have permission to view this collection.")
     return render(request, 'document_collections/detail.html', {'collection': collection})
+
+
+def signup(request):
+    if request.method == 'POST':
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            messages.success(request, 'Account created successfully!')
+            return redirect('document_collections:list')
+    else:
+        form = SignUpForm()
+    return render(request, 'registration/signup.html', {'form': form})
 
 @login_required
 def collection_delete(request, pk):
