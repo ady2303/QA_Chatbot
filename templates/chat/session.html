@@ -9,6 +9,15 @@
             </div>
             <div class="card-body">
                 <p class="text-muted">{{ collection.description }}</p>
+                <div class="mb-3">
+                    <label for="model-select" class="form-label">Select Model:</label>
+                    <select class="form-select mb-3" id="model-select" name="model_key">
+                        <option value="tinyllama">TinyLlama 1.1B</option>
+                        <option value="capybara">Capybara Hermes</option>
+                        <option value="optimus">Optimus 7B</option>
+                        <option value="rollama">RoLlama2 7B</option>
+                    </select>
+                </div>
                 <a href="{% url 'document_collections:detail' collection.pk %}" class="btn btn-secondary btn-sm">View Collection</a>
             </div>
         </div>
@@ -49,7 +58,10 @@
                     <input type="hidden" id="session_id" name="session_id" value="{{ session.id }}">
                     <div class="input-group">
                         <input type="text" id="message" name="message" class="form-control" placeholder="Type your message..." required>
-                        <button type="submit" class="btn btn-primary" id="send-button">Send</button>
+                        <button type="submit" class="btn btn-primary" id="send-button">
+                            <span class="button-text">Send</span>
+                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        </button>
                     </div>
                 </form>
             </div>
@@ -65,9 +77,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const sendButton = document.getElementById('send-button');
     const messageInput = document.getElementById('message');
     const sessionInput = document.getElementById('session_id');
+    const modelSelect = document.getElementById('model-select');
+    const buttonText = sendButton.querySelector('.button-text');
+    const spinner = sendButton.querySelector('.spinner-border');
 
     function scrollToBottom() {
         chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function setLoading(isLoading) {
+        messageInput.disabled = isLoading;
+        sendButton.disabled = isLoading;
+        modelSelect.disabled = isLoading;
+        buttonText.classList.toggle('d-none', isLoading);
+        spinner.classList.toggle('d-none', !isLoading);
     }
 
     function appendMessage(content, isUser) {
@@ -96,32 +119,27 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const message = messageInput.value.trim();
         const sessionId = sessionInput.value;
+        const modelKey = modelSelect.value;
         
         console.log('Sending message:', message);
         console.log('Session ID:', sessionId);
+        console.log('Model:', modelKey);
         
         if (!message || !sessionId) {
             console.error('Missing required fields');
             return;
         }
 
-        // Disable input and button while processing
-        messageInput.disabled = true;
-        sendButton.disabled = true;
-        
-        // Show user message immediately
+        setLoading(true);
         appendMessage(message, true);
+        messageInput.value = '';
 
         try {
             const formData = new FormData();
             formData.append('message', message);
             formData.append('session_id', sessionId);
+            formData.append('model_key', modelKey);
             
-            // Log form data for debugging
-            for (let pair of formData.entries()) {
-                console.log('Form data:', pair[0], pair[1]);
-            }
-
             const response = await fetch('{% url "chat:send_message" %}', {
                 method: 'POST',
                 body: formData,
@@ -136,7 +154,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (response.ok && data.status === 'success') {
                 appendMessage(data.response, false);
-                messageInput.value = ''; // Clear input only on success
             } else {
                 console.error('Server error:', data);
                 appendMessage(`Error: ${data.error || 'Unknown error occurred'}`, false);
@@ -145,9 +162,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Request error:', error);
             appendMessage(`Error: ${error.message}`, false);
         } finally {
-            // Re-enable input and button
-            messageInput.disabled = false;
-            sendButton.disabled = false;
+            setLoading(false);
             messageInput.focus();
         }
     });

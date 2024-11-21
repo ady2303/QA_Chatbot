@@ -23,16 +23,15 @@ def chat_session(request, collection_id):
         'collection': collection
     })
 
-
-
 @login_required
 @require_http_methods(["POST"])
 def send_message(request):
     try:
         message = request.POST.get('message')
         session_id = request.POST.get('session_id')
+        model_key = request.POST.get('model_key', 'tinyllama')  # Default to tinyllama
         
-        logger.info(f"Received message request - Message: {message}, Session ID: {session_id}")
+        logger.info(f"Received message request - Message: {message}, Session ID: {session_id}, Model: {model_key}")
         
         if not message or not session_id:
             return JsonResponse({
@@ -56,9 +55,9 @@ def send_message(request):
             logger.info("Getting chat manager instance")
             manager = get_chat_manager()
             
-            # Get response from LLM
-            logger.info("Requesting response from LLM")
-            response_text = manager.get_response(message, session)
+            # Get response from LLM using specified model
+            logger.info(f"Requesting response from LLM using model: {model_key}")
+            response_text = manager.get_response(message, session, model_key)
             
             logger.info(f"Received response: {response_text[:100]}...")
             
@@ -96,9 +95,6 @@ def send_message(request):
             'status': 'error',
             'error': str(e)
         }, status=500)
-        
-  
-
 
 @login_required
 def chat_history(request, session_id):
