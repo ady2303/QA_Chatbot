@@ -19,6 +19,7 @@ VECTOR_DB_PATH = os.path.join(BASE_DIR, 'vectorstore')
 LLM_MODELS_DIR = os.path.join(BASE_DIR, 'llm_models')
 os.makedirs(LLM_MODELS_DIR, exist_ok=True)
 
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -28,7 +29,7 @@ SECRET_KEY = 'django-insecure-6n08+wlz=2rk!y^yph_)o%3ua1(1&83z^4)y0dcjiw=fh8axn*
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['tml.cs.vt.edu']
 
 # LOGIN_URL = 'login'
 # LOGIN_REDIRECT_URL = 'document_collections:list'
@@ -44,12 +45,26 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'django.contrib.staticfiles',
+    # 'django.contrib.staticfiles',
     
     'apps.document_collections.apps.DocumentCollectionsConfig',
     'apps.documents.apps.DocumentsConfig',
     'apps.chat.apps.ChatConfig',
 ]
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'ERROR',
+    },
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -128,6 +143,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
