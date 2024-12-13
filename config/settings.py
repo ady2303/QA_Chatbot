@@ -30,7 +30,6 @@ SECRET_KEY = 'django-insecure-6n08+wlz=2rk!y^yph_)o%3ua1(1&83z^4)y0dcjiw=fh8axn*
 DEBUG = True
 
 ALLOWED_HOSTS = ['tml.cs.vt.edu']
-
 # LOGIN_URL = 'login'
 # LOGIN_REDIRECT_URL = 'document_collections:list'
 # LOGOUT_REDIRECT_URL = 'login'

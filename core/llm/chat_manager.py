@@ -207,6 +207,27 @@ class ChatManager:
             embedding_function=self.embeddings
         )
 
+    def _clean_context(self, input_text: str) -> str:
+        """
+        Extracts the first 'Answer:' block from the input text.
+
+        Args:
+            input_text (str): The full input text including context, chat history, and questions/answers.
+
+        Returns:
+            str: The first 'Answer:' block.
+        """
+        # Look for the "Answer:" keyword and isolate the first occurrence
+        start_delimiter = "Answer:"
+        if start_delimiter in input_text:
+            # Extract text starting from "Answer:" and truncate at the next newline or delimiter
+            answer_block = input_text.split(start_delimiter, 1)[1].strip()
+            # Stop at the next period or newline
+            first_sentence = answer_block.split("\n")[0].split(".")[0].strip()
+            return f"{start_delimiter} {first_sentence}."
+        return "Answer: Not found."
+
+
     def process_documents(self, collection) -> Optional[Chroma]:
         """
         Process documents for a collection and store in vector store.
@@ -268,12 +289,12 @@ class ChatManager:
     def get_response(self, message: str, session, model_key: str = None) -> Optional[str]:
         """
         Get a response using the specified or current model with memory handling.
-        
+
         Args:
             message (str): User's input message
             session: Session containing conversation context
             model_key (str, optional): Key identifying the model to use
-            
+
         Returns:
             Optional[str]: Model's response or error message
         """
@@ -297,39 +318,25 @@ class ChatManager:
                     {"answer": ai_msg}
                 )
             
-            # Handle direct responses if no documents
-            if not session.collection.documents.exists():
-                print("No documents found, generating direct response")
-                # Combine system prompt, history, and current message
-                full_prompt = f"{self.system_prompt}\n\nChat History:\n"
-                for human_msg, ai_msg in chat_history:
-                    full_prompt += f"Human: {human_msg}\nAssistant: {ai_msg}\n"
-                full_prompt += f"Human: {message}\nAssistant:"
-                
-                response = model.invoke(full_prompt)
-                memory.save_context({"question": message}, {"answer": response})
-                return response
-
             # Process documents and create vector store
             vector_store = self.process_documents(session.collection)
             if not vector_store:
                 return "I apologize, but I couldn't process the documents. Please try again."
 
-            # Get number of documents in collection
-            doc_count = session.collection.documents.count()
-            print(f"Number of documents in collection: {doc_count}")
+            # Get retriever
+            retriever = vector_store.as_retriever(search_kwargs={"k": 3})
+            
+            # Retrieve documents and clean context
+            retrieved_docs = retriever.get_relevant_documents(message)
+            cleaned_contexts = [self._clean_context(doc.page_content) for doc in retrieved_docs]
+            
+            # Combine cleaned contexts
+            augmented_input = "\n".join([
+                f"Source: {doc.metadata.get('source', 'Unknown Source')}\n{context}" 
+                for doc, context in zip(retrieved_docs, cleaned_contexts)
+            ])
 
-            # Create retriever with adaptive k parameter
-            k = min(3, doc_count)  # Use either 3 or total doc count, whichever is smaller
-            print(f"Setting retriever to fetch {k} documents")
-            
-            retriever = vector_store.as_retriever(
-                search_kwargs={
-                    "k": k
-                }
-            )
-            
-            # Create conversational chain with memory
+            # Create prompt and generate response
             chain = ConversationalRetrievalChain.from_llm(
                 llm=model,
                 retriever=retriever,
@@ -341,19 +348,28 @@ class ChatManager:
                 verbose=True
             )
             
-            # Get response using the chain
             print("Generating response...")
             response = chain({
                 "question": message,
-                "chat_history": memory.chat_memory.messages
+                "chat_history": memory.chat_memory.messages,
+                "context": augmented_input
             })
+
+            # Extract sources from retrieved documents
+            sources = "\n".join([
+                f"- {doc.metadata.get('source', 'Unknown Source')}" 
+                for doc in response['source_documents']
+            ])
             
+            # Combine response with sources
+            final_response = f"{response['answer']}\n\nSources:\n{sources}"
             print("Response generated successfully")
-            return response['answer']
+            return final_response
             
         except Exception as e:
             print(f"Error in get_response: {str(e)}")
             return f"I encountered an error: {str(e)}"
+
 
 
     def cleanup(self):
@@ -364,6 +380,26 @@ class ChatManager:
             except Exception as e:
                 print(f"Error cleaning up model: {e}")
         self.models.clear()
+
+    def clean_context(input_text: str) -> str:
+        """
+        Removes previous questions and answers from the input text, preserving only the main context.
+
+        Args:
+            input_text (str): The full input text including context, chat history, and questions/answers.
+
+        Returns:
+            str: Cleaned text with only the context section.
+        """
+        # Look for the "Chat History" or "Current Question" section as a marker
+        delimiters = ["Chat History:", "Current Question:", "Current Queestion"]
+        for delimiter in delimiters:
+            if delimiter in input_text:
+                # Truncate at the first occurrence of the delimiter
+                input_text = input_text.split(delimiter, 1)[0].strip()
+        
+        return input_text
+
 
 def test_model_setup(model_key: str) -> bool:
     """
